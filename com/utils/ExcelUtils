@@ -1,0 +1,566 @@
+
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.*;
+import org.apache.tools.zip.ZipEntry;
+import org.apache.tools.zip.ZipOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
+import java.net.URLEncoder;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * Created by zhangwei on 2018/01/29.
+ */
+public class ExcelUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExcelUtil.class);
+
+    public final static int MONEY=-2;
+
+    /**
+     * 导出Excel
+     * (如果少于10000行，就导出excel文件，如果超过10000行，就会导出zip压缩文件,里面有多个excel文件)
+     *
+     * @param excelName 要导出的excel名称
+     * @param list      要导出的数据集合
+     * @param fieldMap  中英文字段对应Map,即要导出的excel表头
+     * @param fieldType 要导出的数据字段的类型，如果是String则可不用定义，如果是金额和日期则要定义进Map,
+     *                  目前金额(-2),大于等于0则为日期(已经日期格式化String了则不用定义),表示日期需要格式化的字符串类型,参考DateTimeUtil,当前字段可为空
+     * @param response  使用response可以导出到浏览器
+     *                  注意：不要定义produces = "application/json"头
+     * @return
+     */
+    public static <T> void export(String excelName, List<T> list, LinkedHashMap<String, String> fieldMap, LinkedHashMap<String, Integer> fieldType, HttpServletResponse response, HttpServletRequest req) {
+        // 设置默认文件名为当前时间：年月日时分秒
+        if (excelName == null || excelName == "") {
+            excelName = new SimpleDateFormat("yyyyMMddhhmmss").format(
+                    new Date()).toString();
+        }
+
+        int total = list.size();  //总记录数
+        int excelBig = 10000;    //excel划分的大小
+
+        //判断需要分成多少个excel
+        int excelCount = (total % excelBig == 0) ? (total / excelBig) : (total / excelBig + 1);
+
+        //定义一个excel集合
+        List<HSSFWorkbook> excelList = new ArrayList<HSSFWorkbook>();
+
+        HSSFWorkbook wb = null;  //excel工作表
+        int begin = 0;   //数据源的开始位置
+        int end = 0;      //数据源的结束位置
+
+        //循环得到excel集合
+        for (int i = 0; i < excelCount; i++) {
+            //第一次begin从零开始,否则从结束位置加1开始
+            if (end != 0) {
+                begin = end;
+            }
+            end = begin + excelBig;
+            //判断如果最后的位置大于总记录数，则修改为总记录数
+            if (end > list.size()) {
+                end = list.size();
+            }
+            //生成excel
+            wb = createExcel(excelName + (i + 1), list, begin, end, fieldMap, fieldType, response);
+            //将生成的excel添加到集合
+            excelList.add(wb);
+        }
+        //一个文件就导出excel,多个文件导出zip文件
+        if (excelList.size() == 1) {
+            try {
+                setExcel(excelList.get(0), excelName, response, req);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            //生成压缩文件，并导出
+            toZipOut(excelName, excelList, response,req);
+        }
+    }
+
+    /**
+     * 生成Excel
+     *
+     * @param excelName 要导出的excel名称
+     * @param list      要导出的数据集合
+     * @param begin     数据集合的开始位置
+     * @param end       数据集合的结束位置
+     * @param fieldMap  中英文字段对应Map,即要导出的excel表头
+     * @param response  使用response可以导出到浏览器
+     * @return
+     */
+    private static <T> HSSFWorkbook createExcel(String excelName, List<T> list, Integer begin, Integer end,
+                                                LinkedHashMap<String, String> fieldMap, LinkedHashMap<String, Integer> fieldType, HttpServletResponse response) {
+
+        int sheetContent = 2000;     //每个excel中sheet的容量
+
+        //计算sheet的数量
+        int sheetCount = 0;
+        //如果总记录数  正好整除 以每个sheet的容量
+        if ((end - begin) % sheetContent == 0) {
+            //sheet的数量=总记录数 除以 每个sheet的容量
+            sheetCount = (end - begin) / sheetContent;
+        } else {
+            //sheet的数量=总记录数 除以 每个sheet的容量 加1
+            sheetCount = (end - begin) / sheetContent + 1;
+        }
+
+        //创建一个WorkBook,对应一个Excel文件
+        HSSFWorkbook wb = new HSSFWorkbook();
+        //创建单元格，并设置值表头 设置表头居中
+        HSSFCellStyle style = wb.createCellStyle();
+        //创建一个居中格式
+        style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+
+        //定义sheet
+        HSSFSheet sheet = null;
+        //定义sheet的名称
+        String sheetName = excelName + "-";
+        //sheet中的数据开始位置
+        int beginSheet = 0;
+        //sheet中的数据结束位置
+        int endSheet = 0;
+
+        //循环创建sheet
+        for (int i = 0; i < sheetCount; i++) {
+            //在Workbook中，创建一个sheet，对应Excel中的工作薄（sheet）
+            sheet = wb.createSheet(sheetName + (i + 1));
+
+            //第一次beginSheet从begin开始,否则从结束位置加1开始
+            if (endSheet == 0) {
+                beginSheet = begin;
+            } else {
+                beginSheet = endSheet;
+            }
+            //sheet结束位置=sheet开始位置+每个sheet的容量
+            endSheet = beginSheet + sheetContent;
+            //判断如果最后的位置大于总记录数，则修改为总记录数
+            if (endSheet > end) {
+                endSheet = end;
+            }
+
+            // 填充工作表
+            try {
+                List pageList = list.subList(beginSheet, endSheet);
+                fillSheet(sheet, pageList, fieldMap, fieldType, style);
+            } catch (Exception e) {
+                logger.info(e.getMessage());
+            }
+        }
+        //返回excel
+        return wb;
+    }
+
+    /**
+     * 生成压缩文件，并导出
+     *
+     * @param excelName 要导出的excel名称
+     * @param excelList 要压缩的文件集合
+     * @param response  使用response可以导出到浏览器
+     * @return
+     */
+    private static <T> void toZipOut(String excelName, List<HSSFWorkbook> excelList, HttpServletResponse response, HttpServletRequest req) {
+
+        try {
+            //将压缩包的名字默认为日期时间串
+            String fieldName =new SimpleDateFormat("yyyyMMddhhmmss").format(
+                    new Date()).toString() + ".zip";
+
+            //浏览器兼容处理
+            final String userAgent = req.getHeader("USER-AGENT");
+            if(StringUtils.contains(userAgent, "MSIE")){//IE浏览器
+                fieldName = URLEncoder.encode(fieldName,"UTF-8");
+            }else if(StringUtils.contains(userAgent, "Mozilla")){//google,火狐浏览器
+              //  fieldName = new String(fieldName.getBytes(), "ISO8859-1");
+                fieldName = URLEncoder.encode(fieldName,"UTF-8");
+            }else{
+                fieldName = URLEncoder.encode(fieldName,"UTF-8");//其他浏览器
+            }
+
+            /**设置response头信息**/
+            //重置response头信息
+            response.reset();
+            //自己写状态码
+            response.setStatus(HttpServletResponse.SC_OK);
+            //使客户端浏览器，区分不同种类的数据，并根据不同的MIME调用浏览器内不同的程序嵌入模块来处理相应的数据。
+            //ZIP与EXE文件的MIME类型同为application/octet-stream
+            response.setContentType("application/octet-stream ");
+            //Content-disposition 是 MIME 协议的扩展，MIME 协议指示 MIME 用户代理如何显示附加的文件。
+            //Content-disposition其实可以控制用户请求所得的内容存为一个文件的时候提供一个默认的文件名，文件直接在浏览器上显示或者在访问时弹出文件下载对话框。
+            //此处设置下载文件的格式为.zip
+            response.setHeader("Content-Disposition", "attachment;filename=\"" +fieldName  + "\"");
+
+            //生成输出流
+            OutputStream ouputStream = response.getOutputStream();
+            //生成压缩包
+            ZipOutputStream zip = new ZipOutputStream(ouputStream);
+            zip.setEncoding("GBK");//指定编码为gbk，否则部署到linux下会出现乱码
+            int i = 1;
+            String eName;
+            //循环文件列表，添加到压缩包中
+            for (HSSFWorkbook workbook : excelList) {
+                //给每个文件名加序号
+                eName = excelName + String.valueOf(i);
+                //实例化一个压缩实体
+                ZipEntry entry = new ZipEntry(eName + ".xls");
+                //将压缩实体放入压缩包
+                zip.putNextEntry(entry);
+                //将excel内容写进压缩实体
+                workbook.write(zip);
+                i++;
+            }
+            //将文件输出
+            zip.flush();
+            zip.close();
+            response.flushBuffer();
+        } catch (Exception e) {
+            logger.info("导出Excel失败！");
+            logger.error(e.getMessage());
+        }
+    }
+
+    private static void setExcel(HSSFWorkbook workbook, String fileName, HttpServletResponse resp, HttpServletRequest req) throws IOException {
+        fileName += new SimpleDateFormat("yyyyMMddhhmmss").format(
+                new Date()).toString() + ".xls";
+        fileName = new String(fileName.getBytes("GBK"),"ISO8859-1");
+        /*String userAgent = req.getHeader("User-Agent");
+        if (userAgent.contains("MSIE")) {
+            try {
+                fileName = URLEncoder.encode(fileName, "utf-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                fileName = URLEncoder.encode(fileName, "GBK");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }*/
+
+        resp.setContentType("application/vnd.ms-excel;charset=utf-8");
+
+        resp.setHeader("Content-Disposition", "attachment;filename=" + fileName);
+        OutputStream out = null;
+        try {
+
+            workbook.write(resp.getOutputStream());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            resp.getOutputStream().close();
+        }
+    }
+
+    /**
+     * 向工作表中填充数据
+     *
+     * @param sheet    excel的工作表名称
+     * @param list     数据源
+     * @param fieldMap 中英文字段对应关系的Map
+     * @param style    表格中的格式
+     * @throws Exception 异常
+     */
+    public static <T> void fillSheet(HSSFSheet sheet, List<T> list, LinkedHashMap<String, String> fieldMap, LinkedHashMap<String, Integer> fieldType, HSSFCellStyle style) throws Exception {
+        // 定义存放英文字段名和中文字段名的数组
+        String[] enFields = new String[fieldMap.size()];
+        String[] cnFields = new String[fieldMap.size()];
+
+        // 填充数组
+        int count = 0;
+        for (Map.Entry<String, String> entry : fieldMap.entrySet()) {
+            enFields[count] = entry.getKey();
+            cnFields[count] = entry.getValue();
+            count++;
+        }
+
+        //在sheet中添加表头第0行,注意老版本poi对Excel的行数列数有限制short
+        HSSFRow row = sheet.createRow((int) 0);
+
+        // 填充表头
+        for (int i = 0; i < cnFields.length; i++) {
+            HSSFCell cell = row.createCell(i);
+            cell.setCellValue(cnFields[i]);
+            cell.setCellStyle(style);
+            sheet.autoSizeColumn(i);
+        }
+
+        // 填充内容
+        for (int index = 0; index < list.size(); index++) {
+            row = sheet.createRow(index + 1);
+            // 获取单个对象
+            T item = list.get(index);
+            for (int i = 0; i < enFields.length; i++) {
+                Object objValue = getFieldValueByNameSequence(enFields[i], item);
+                //字符类型转换
+                if (fieldType!=null && fieldType.containsKey(enFields[i])) {
+                    int numericType = fieldType.get(enFields[i]);
+                    if (numericType == -2) {//如果是金额类型
+                        objValue = NumberUtil.formatString(String.valueOf(objValue), 2, false);
+                    } else if (numericType >= 0 &&objValue!=null) {//如果是日期类型
+                        Date date = null;
+                        try {
+                            date = new Timestamp((Long) objValue);
+                        } catch (ClassCastException e) {
+                            date = (Date) objValue;
+                        }
+                        objValue = DateTimeUtil.formatDate(date, numericType);
+                    }
+                }
+                String fieldValue = objValue == null ? "" : objValue.toString();
+                row.createCell(i).setCellValue(fieldValue);
+            }
+            sheet.autoSizeColumn(index);
+        }
+    }
+
+    /**
+     * 根据带路径或不带路径的属性名获取属性值,即接受简单属性名，
+     * 如userName等，又接受带路径的属性名，如student.department.name等
+     *
+     * @param fieldNameSequence 带路径的属性名或简单属性名
+     * @param o                 对象
+     * @return 属性值
+     * @throws Exception 异常
+     */
+    public static Object getFieldValueByNameSequence(String fieldNameSequence,
+                                                     Object o) throws Exception {
+        Object value = null;
+        //Map类型
+        if (o instanceof Map) {
+            return ((Map) o).get(fieldNameSequence);
+        }
+
+        // 将fieldNameSequence进行拆分
+        String[] attributes = fieldNameSequence.split("\\.");
+        if (attributes.length == 1) {
+            value = getFieldValueByName(fieldNameSequence, o);
+        } else {
+            // 根据数组中第一个连接属性名获取连接属性对象，如student.department.name
+            Object fieldObj = getFieldValueByName(attributes[0], o);
+            //截取除第一个属性名之后的路径
+            String subFieldNameSequence = fieldNameSequence
+                    .substring(fieldNameSequence.indexOf(".") + 1);
+            //递归得到最终的属性对象的值
+            value = getFieldValueByNameSequence(subFieldNameSequence, fieldObj);
+        }
+        return value;
+
+    }
+
+    /**
+     * 根据字段名获取字段值
+     *
+     * @param fieldName 字段名
+     * @param o         对象
+     * @return 字段值
+     * @throws Exception 异常
+     */
+    public static Object getFieldValueByName(String fieldName, Object o)
+            throws Exception {
+
+        Object value = null;
+        //根据字段名得到字段对象
+        Field field = getFieldByName(fieldName, o.getClass());
+
+        //如果该字段存在，则取出该字段的值
+        if (field != null) {
+            field.setAccessible(true);//类中的成员变量为private,在类外边使用属性值，故必须进行此操作
+            value = field.get(o);//获取当前对象中当前Field的value
+        } else {
+            throw new Exception(o.getClass().getSimpleName() + "类不存在字段名 "
+                    + fieldName);
+        }
+
+        return value;
+    }
+
+    /**
+     * 根据字段名获取字段对象
+     *
+     * @param fieldName 字段名
+     * @param clazz     包含该字段的类
+     * @return 字段
+     */
+    public static Field getFieldByName(String fieldName, Class<?> clazz) {
+        // 拿到本类的所有字段
+        Field[] selfFields = clazz.getDeclaredFields();
+
+        // 如果本类中存在该字段，则返回
+        for (Field field : selfFields) {
+            //如果本类中存在该字段，则返回
+            if (field.getName().equals(fieldName)) {
+                return field;
+            }
+        }
+
+        // 否则，查看父类中是否存在此字段，如果有则返回
+        Class<?> superClazz = clazz.getSuperclass();
+        if (superClazz != null && superClazz != Object.class) {
+            //递归
+            return getFieldByName(fieldName, superClazz);
+        }
+
+        // 如果本类和父类都没有，则返回空
+        return null;
+    }
+    
+public static List<ReaderDto> listReaderExcel(File file) {
+        // TODO Auto-generated method stub
+        List<ReaderDto> list = Lists.newArrayList();
+        try {
+            Workbook hssfWorkbook = null;
+            InputStream is = new FileInputStream(file);
+            if (file.getName().contains(".xlsx")) {
+                hssfWorkbook = new XSSFWorkbook(is);
+            } else {
+                hssfWorkbook = new HSSFWorkbook(is);
+            }
+            Sheet sheet = hssfWorkbook.getSheetAt(0);
+            for (int numSheet = 1; numSheet <= sheet.getPhysicalNumberOfRows(); numSheet++) {
+                Row row = sheet.getRow(numSheet);
+                if (row == null) {
+                    continue;
+                }
+                // 循环行Row
+                ReaderDto readerDto = new ReaderDto();
+                Cell cell = row.getCell(0);
+                if (null != cell) {
+                    readerDto.setIdCard(getValue(cell).toString());
+                } else {
+                    readerDto.setIdCard("");
+                }
+                cell = row.getCell(1);
+                if (null != cell) {
+                    readerDto.setCardName(getValue(cell).toString());
+                } else {
+                    readerDto.setCardName("");
+                }
+                cell = row.getCell(2);
+                if (null != cell) {
+                    cell.setCellType(cell.CELL_TYPE_STRING);
+                    readerDto.setBorrowCard(getValue(cell).toString());
+                } else {
+                    readerDto.setBorrowCard("");
+                }
+                list.add(readerDto);
+            }
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        }
+        return list;
+    }
+}
+
+class TestObj{
+    public int id;
+    public String name;
+    public String desc;
+    public boolean gender;
+    public String location;
+
+    public static int incrementNum = 0;
+    public static Random random = new Random(125);
+    
+    public static TestObj create(){
+        incrementNum++;
+        TestObj testObj = new TestObj();
+        testObj.id = incrementNum;
+        testObj.name = strCreator();
+        testObj.desc = strCreator();
+        testObj.gender = random.nextBoolean();
+        testObj.location = strCreator();
+        return testObj;
+    }
+    
+    public static String strCreator(){
+        int len = random.nextInt(10);
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<len;i++) {
+            sb.append((char) random.nextInt(254));
+        }
+        return  sb.toString();
+    }
+    
+    
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
+    }
+
+    public boolean isGender() {
+        return gender;
+    }
+
+    public void setGender(boolean gender) {
+        this.gender = gender;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+}
+
+class ExcelTest {
+    public static void main(String[] args) throws IOException {
+
+        List<TestObj> list = new ArrayList<>();
+        for(int i=0;i<100;i++){
+            list.add(TestObj.create());
+        }
+        LinkedHashMap<String, String> fieldMap = new LinkedHashMap<>();
+        fieldMap.put("id","id");
+        fieldMap.put("name","名称");
+        fieldMap.put("desc","简介");
+        fieldMap.put("gender","性别");
+        fieldMap.put("location","位置");
+
+        LinkedHashMap<String,Integer> typeMap = new LinkedHashMap<>();
+        typeMap.put("id",-1);
+        typeMap.put("name",-1);
+        typeMap.put("desc",-1);
+        typeMap.put("gender",-1);
+        typeMap.put("location",-1);
+
+        File file = new File("E:/testObj.xlsx");
+        file.createNewFile();
+        FileOutputStream outputStream = new FileOutputStream(file);
+        ExcelUtil.export("test.xlsx",list,fieldMap,typeMap,response,request);
+    }
+}
