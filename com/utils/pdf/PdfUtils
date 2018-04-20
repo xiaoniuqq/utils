@@ -1,0 +1,3398 @@
+
+import com.google.common.collect.Maps;
+import com.itextpdf.text.*;
+import com.itextpdf.text.pdf.*;
+import com.yuntu.commons.library.dto.storeroom.LibraryBookTempDto;
+import com.yuntu.commons.util.DateTimeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.text.DecimalFormat;
+import java.util.*;
+import java.util.List;
+
+/**
+ * Created by zengliliang on 2017/9/13.
+ */
+public class PdfUtils {
+
+    // 表格的设置
+    private final int padding = 2;
+    private final int headColNumber = 4;
+    // 表格的设置
+    private final int spacing = 0;
+    //日记记录
+    private Logger LOG = LoggerFactory.getLogger(getClass());
+
+
+
+    /**
+     * 导出编目pdf 智能编目
+     *
+     * @param list               数据
+     * @param libraryBookTempDto 参数
+     * @param mapLibrary         图书馆信息
+     * @param response           输出
+     */
+    public void exportCataloguePdf(List list, LibraryBookTempDto libraryBookTempDto, HashMap mapLibrary, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"馆号", "条码号", "ISBN", "书名", "出版社", "定价", "著者","年份" ,"分类号", "排架号"};
+        // 数据表字段数
+        int colNumber = 10;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = libraryBookTempDto.getBelongLibraryHallCode() + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+            //编目单号
+            objects.add(libraryBookTempDto.getCatalogueCode());
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("入藏清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + libraryBookTempDto.getBelongLibraryHallCode(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名:" + mapLibrary.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人:" + mapLibrary.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话:" + mapLibrary.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("单号 : " + libraryBookTempDto.getCatalogueCode(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            HashMap mp = (HashMap) list.get(0);
+            cel = new Paragraph("日期 : " + DateTimeUtil.stampToDate(mp.get("catalogueDate") + "",DateTimeUtil.yyyy_MM_dd), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("操作员 : " + libraryBookTempDto.getUserName(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计数量 : " + list.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + libraryBookTempDto.getTotalPrice(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber(10)列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 3, 5, 7, 4, 3, 4, 2, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            for (int j = 0; j < list.size(); j++) {
+                HashMap m = (HashMap) list.get(j);
+                Map<String, String> map = Maps.newHashMap();
+                map.put("1", m.get("belongLibraryHallCode") + "");
+                map.put("2", m.get("barNumber") + "");
+                map.put("3", m.get("isbn") + "");
+                map.put("4", m.get("properTitle") + "");
+                map.put("5", m.get("press") + "");
+                map.put("6", String.valueOf(formatPrice(m.get("price"))));
+                map.put("7", m.get("author") + "");
+                map.put("8", DateTimeUtil.stampToDate(m.get("publishDate")+"",DateTimeUtil.yyyy));
+                map.put("9", m.get("classificationNumber") + "/" + m.get("verietyCode"));
+                map.put("10", m.get("frameCode") + "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+                    if (4 == i) {
+                        if (9 <= map.get(i + "").length()) {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+                        } else {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                        }
+                    } else if (5 == i) {
+                        if (map.get(i + "") != null && !(map.get(i + "").equals(""))) {
+                            if (6 <= map.get(i + "").length()) {
+                                datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+                            } else {
+                                datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                            }
+                        }
+
+                    } else if (7 == i) {
+                        if (6 <= map.get(i + "").length()) {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+                        } else {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                        }
+                    } else {
+                        datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    }
+                    datatable.addCell(new Paragraph(map.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+
+    /**
+     * 导出编目pdf 普通编目
+     *
+     * @param list               数据
+     * @param libraryBookTempDto 参数
+     * @param mapLibrary         图书馆信息
+     * @param response           输出
+     */
+    public void exportCommonCataloguePdf(List list, LibraryBookTempDto libraryBookTempDto, HashMap mapLibrary, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"馆号", "条码号", "ISBN", "正题名", "出版社","出版年", "定价", "第一责任者", "分类号", "排架号", "制作日期"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = libraryBookTempDto.getBelongLibraryHallCode() + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+            //编目单号
+            objects.add(libraryBookTempDto.getCatalogueCode());
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("入藏清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + libraryBookTempDto.getBelongLibraryHallCode(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名:" + mapLibrary.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人:" + mapLibrary.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话:" + mapLibrary.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("单号 : " + libraryBookTempDto.getCatalogueCode(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            HashMap mp = (HashMap) list.get(0);
+            cel = new Paragraph("日期 : " + DateTimeUtil.stampToDate(mp.get("catalogueDate") + "",DateTimeUtil.yyyy_MM_dd), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("操作员 : " + libraryBookTempDto.getUserName(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计数量 : " + list.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + libraryBookTempDto.getTotalPrice(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber(10)列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 3, 5, 10, 5, 5, 4, 5, 5, 5,4};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            for (int j = 0; j < list.size(); j++) {
+                HashMap m = (HashMap) list.get(j);
+                Map<String, String> map = Maps.newHashMap();
+                map.put("1", m.get("belongLibraryHallCode") + "");
+                map.put("2", m.get("barNumber") + "");
+                map.put("3", m.get("isbn") + "");
+                map.put("4", m.get("properTitle") + "");
+                map.put("5", m.get("press") + "");
+                map.put("6", DateTimeUtil.stampToDate(m.get("publishDate") + "",DateTimeUtil.yyyy_MM_dd));
+                map.put("7", String.valueOf(formatPrice(m.get("price"))));
+                map.put("8", m.get("author") + "");
+                map.put("9", m.get("classificationNumber") + "/" + m.get("verietyCode"));
+                map.put("10", m.get("frameCode") + "");
+                if (m.get("makeDateStr")==null){
+                    map.put("11","");
+                }else {
+                    map.put("11", m.get("makeDateStr") + "");
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+                    if (4 == i) {
+                        if (9 <= map.get(i + "").length()) {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+                        } else {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                        }
+                    } else if (5 == i) {
+                        if (map.get(i + "") != null && !(map.get(i + "").equals(""))) {
+                            if (6 <= map.get(i + "").length()) {
+                                datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+                            } else {
+                                datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                            }
+                        }
+
+                    } else if (7 == i) {
+                        if (6 <= map.get(i + "").length()) {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+                        } else {
+                            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                        }
+                    } else {
+                        datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    }
+                    datatable.addCell(new Paragraph(map.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 销售统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void  bookSellsPDF(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "条码号", "ISBN", "书名", "出版社", "定价",  "索书号", "排架号", "金额", "操作员"};
+        // 数据表字段数
+        int colNumber = 10;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("销售统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 3, 4, 7, 4, 3, 5,3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("createTime") + "");
+                mm.put("2", hashMap.get("barNumber") + "");
+                mm.put("3", hashMap.get("isbn") + "");
+                mm.put("4", hashMap.get("properTitle") + "");
+                mm.put("5", hashMap.get("press") + "");
+                mm.put("6", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("7", hashMap.get("classificationNumber") + "");
+                mm.put("8", hashMap.get("frameCode")+"");
+                mm.put("9", String.valueOf(formatPrice(hashMap.get("amount"))));
+                mm.put("10",hashMap.get("userName") + "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 藏书统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void libraryBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"馆号", "条码号", "ISBN", "书名", "出版社", "定价", "著者", "索书号", "排架号", "年份", "状态"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("藏书统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 3, 4, 7, 4, 3, 5, 3, 3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("belongLibraryHallCode") + "");
+                mm.put("2", hashMap.get("barNumber") + "");
+                mm.put("3", hashMap.get("isbn") + "");
+                mm.put("4", hashMap.get("properTitle") + "");
+                mm.put("5", hashMap.get("press") + "");
+                mm.put("6", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("7", hashMap.get("author") + "");
+                mm.put("8", hashMap.get("classificationNumber")+"");
+                mm.put("9", hashMap.get("frameCode") + "");
+                mm.put("10",hashMap.get("publishDateYear") + "");
+                HashMap map1= (HashMap) hashMap.get("bookState");
+                mm.put("11",map1.get("desc") + "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 入藏统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void inBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "单号", "条码号", "ISBN", "书名", "出版社", "定价", "著者", "索书号", "排架号", "操作员"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("入藏统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 4, 4, 4, 7, 4, 3, 5, 3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("catalogueDate") + "");
+                mm.put("2", hashMap.get("catalogueCode") + "");
+                mm.put("3", hashMap.get("barNumber") + "");
+                mm.put("4", hashMap.get("isbn") + "");
+                mm.put("5", hashMap.get("properTitle") + "");
+                mm.put("6", hashMap.get("press")+"");
+                mm.put("7",String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("8", hashMap.get("author")+"");
+                mm.put("9", hashMap.get("classificationNumber") + "");
+                mm.put("10",hashMap.get("frameCode") + "");
+                mm.put("11",hashMap.get("userName") + "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 再借统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void inBorrowerPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"借书日期", "馆号", "条码号", "ISBN", "书名", "出版社", "定价", "读者信息", "状态"};
+        // 数据表字段数
+        int colNumber = 9;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("在借统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {4, 5, 3, 4, 7, 3, 3, 8, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("borrowTime").toString());
+                mm.put("2", hashMap.get("hallCode") + "");
+                mm.put("3", hashMap.get("barNumber") + "");
+                mm.put("4", hashMap.get("isbn") + "");
+                mm.put("5", hashMap.get("properTitle") + "");
+                mm.put("6", hashMap.get("press")+"");
+                mm.put("7", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("8", hashMap.get("cardName")+" "+hashMap.get("idCard"));
+                if(hashMap.get("isOverdue").equals("1")){
+                    mm.put("9", "逾期");
+                }
+                if(hashMap.get("isOverdue").equals("2")){
+                    mm.put("9", "超逾期");
+                }
+                if(hashMap.get("isOverdue").equals("3")){
+                    mm.put("9", "未逾期");
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 借书统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void borrowerBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "单号", "馆号","ISBN", "条码号", "书名", "出版社", "定价", "索书号", "排架号","操作员"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("借书统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 4, 4, 4, 8, 4, 3, 5, 3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("borrowTime").toString());
+                mm.put("2", hashMap.get("borrowNumber") + "");
+                mm.put("3", hashMap.get("belongLibraryHallCode") + "");
+                mm.put("4", hashMap.get("barNumber") + "");
+                mm.put("5", hashMap.get("isbn") + "");
+                mm.put("6", hashMap.get("properTitle")+"");
+                mm.put("7", hashMap.get("press") + "");
+                mm.put("8", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("9", hashMap.get("classificationNumber")+" ");
+                mm.put("10", hashMap.get("frameCode")+" ");
+                mm.put("11", hashMap.get("userName")+" ");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 还书统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void returnBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "单号", "条码号","ISBN", "书名", "出版社", "定价","著者", "索书号", "排架号","操作员"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = { 8, 12, 8, 8 };
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("还书统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 4, 4, 4, 7, 4, 3, 5, 3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("returnTime").toString());
+                mm.put("2", hashMap.get("returnNumber") + "");
+                mm.put("3", hashMap.get("barNumber") + "");
+                mm.put("4", hashMap.get("isbn") + "");
+                mm.put("5", hashMap.get("properTitle") + "");
+                mm.put("6", hashMap.get("press")+"");
+                mm.put("7", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("8", hashMap.get("author")+" ");
+                mm.put("9", hashMap.get("classificationNumber")+" ");
+                mm.put("10", hashMap.get("frameCode")+" ");
+                mm.put("11", hashMap.get("userName")+" ");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 赔书统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void compensateBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "单号", "条码号","ISBN", "书名", "出版社", "定价","索书号", "排架号","金额","操作员"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("赔书统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 4, 4, 4, 7, 4, 3, 5, 3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("compensateDate").toString());
+                mm.put("2", hashMap.get("returnCode") + "");
+                mm.put("3", hashMap.get("barNumber") + "");
+                mm.put("4", hashMap.get("isbn") + "");
+                mm.put("5", hashMap.get("properTitle") + "");
+                mm.put("6", hashMap.get("press")+"");
+                mm.put("7", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("8", hashMap.get("classificationNumber")+" ");
+                mm.put("9", hashMap.get("frameCode")+" ");
+                mm.put("10", String.valueOf(formatPrice(hashMap.get("moneySum"))));
+                mm.put("11", hashMap.get("userName")+" ");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 盘亏统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void checkBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "单号", "条码号","ISBN", "书名", "出版社", "定价","著者","索书号", "排架号"};
+        // 数据表字段数
+        int colNumber = 10;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("盘亏统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {10, 10, 8, 7, 10,6, 6, 10, 5,6};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("endheckTime").toString());
+                mm.put("2", hashMap.get("checkNumber") + "");
+                mm.put("3", hashMap.get("barNumber") + "");
+                mm.put("4", hashMap.get("isbn") + "");
+                mm.put("5", hashMap.get("properTitle") + "");
+                mm.put("6", hashMap.get("press")+"");
+                mm.put("7", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("8", hashMap.get("author")+" ");
+                mm.put("9", hashMap.get("classificationNumber")+" ");
+                mm.put("10", hashMap.get("frameCode")+" ");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 剔旧统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void damageBooksPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期", "单号", "条码号","ISBN", "书名", "出版社", "定价","著者","索书号", "原因","操作员"};
+        // 数据表字段数
+        int colNumber = 11;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("剔旧统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 3, 3, 4, 7, 4, 3, 5, 3, 6, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1", hashMap.get("damageDate").toString());
+                mm.put("2", hashMap.get("damageCode") + "");
+                mm.put("3", hashMap.get("barNumber") + "");
+                mm.put("4", hashMap.get("isbn") + "");
+                mm.put("5", hashMap.get("properTitle") + "");
+                mm.put("6", hashMap.get("press")+"");
+                mm.put("7", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("8", hashMap.get("author")+" ");
+                mm.put("9", hashMap.get("classificationNumber")+" ");
+                mm.put("10", hashMap.get("reason")+" ");
+                mm.put("11", hashMap.get("userName")+" ");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * 读者统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void readerStatisticsPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"读者类型", "姓名", "身份证号","借阅证号", "建档日期", "借阅次数", "馆押金","读者级别"};
+        // 数据表字段数
+        int colNumber = 8;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("读者统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {10, 10, 18, 7, 10,8, 6, 10};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                if (hashMap.get("isServiceReader").equals("1")){ //服务读者
+                    mm.put("1","服务读者");
+                }else {
+                    mm.put("1","注册读者");
+                }
+                mm.put("2", hashMap.get("cardName") + "");
+                mm.put("3", hashMap.get("readerIdCard") + "");
+                if( hashMap.get("borrowCard")==null){
+                    mm.put("4", "");
+                }else{
+                    mm.put("4", hashMap.get("borrowCard") + "");
+                }
+                mm.put("5", hashMap.get("createTime") + "");
+                mm.put("6", hashMap.get("borrowerCount")+"");
+                mm.put("7", String.valueOf(formatPrice(hashMap.get("balance"))));
+                mm.put("8", "默认");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+
+    /**
+     * 借阅排行榜 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void borrowerRankingPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"馆号","条码号", "ISBN","书名", "出版社", "定价", "著者","索书号","排架号","年份","状态","借次"};
+        // 数据表字段数
+        int colNumber = 12;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("借阅排行榜统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 3, 4, 7, 4, 3, 5, 3, 3, 3, 3, 3};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1",hashMap.get("belongLibraryHallCode")+"");
+                mm.put("2", hashMap.get("barNumber") + "");
+                mm.put("3", hashMap.get("isbn") + "");
+                mm.put("4", hashMap.get("properTitle") + "");
+                mm.put("5", hashMap.get("press") + "");
+                mm.put("6", String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("7", hashMap.get("author") + "");
+                mm.put("8", hashMap.get("classificationNumber") + "");
+                mm.put("9", hashMap.get("frameCode") + "");
+                mm.put("10", hashMap.get("publishDate") + "-01-01");
+                HashMap map1= (HashMap) hashMap.get("bookState");
+                mm.put("11",  map1.get("desc")+ "");
+                mm.put("12", hashMap.get("borrowNum") + "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+    /**
+     * 馆际流通 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void circulatePdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+
+        //建立文档
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        //表头
+        String[] tableHeader = {"日期","馆号", "馆名","流向", "数量", "洋码", "移交人","审核人","接交人","操作员"};
+        // 数据表字段数
+        int colNumber = 10;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+            // 设置参数
+            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("馆际流通统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {10, 10, 18, 7, 10,8, 6, 8,8,8};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1",hashMap.get("flowDate")+"");
+                mm.put("2", hashMap.get("hallCode") + "");
+                mm.put("3", hashMap.get("name") + "");
+                if (hashMap.get("isOut").equals("1")){ //1:流出,2:流入
+                    mm.put("4", "流出");
+                }else {
+                    mm.put("4", "流入");
+                }
+                mm.put("5", hashMap.get("bookNumber") + "");
+                mm.put("6",String.valueOf(formatPrice(hashMap.get("price"))));
+                mm.put("7", hashMap.get("inUserName") + "");
+                mm.put("8", hashMap.get("contactPerson")+"");
+                mm.put("9",  hashMap.get("outUserName")+ "");
+                mm.put("10", hashMap.get("operUserName") + "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+
+    /**
+     * 收款统计 pdf
+     * @param condition 参数
+     * @param m                      馆信息
+     * @param map                    数据
+     * @param response               输出流
+     */
+    public void gatheringStatisticsPdf(String condition, HashMap m, HashMap map, HttpServletResponse response) {
+        Document document=new Document(new RectangleReadOnly(842F,595F));
+        String[] tableHeader = {"日期","单号", "读者","身份证号", "再借数量", "在借金额", "金额","项目","操作员"};
+        // 数据表字段数
+        int colNumber = 9;
+        OutputStream out = null;
+        try {
+            //生成pdf文件名称
+            String fileName = m.get("hallCode") + ".pdf";
+            out = writePdf(response, fileName, document);
+            document.open();
+            // 中文字体
+            BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+            Font fontTitle = new Font(bfChinese, 14, Font.NORMAL);
+            Font fontHeader = new Font(bfChinese, 11, Font.NORMAL);
+
+//            // 设置参数
+//            List<Object> objects = new ArrayList<>();
+
+            PdfPTable table = new PdfPTable(headColNumber);
+            int[] cellWidth = {8, 12, 8, 8};
+            table.setWidths(cellWidth);
+            table.setWidthPercentage(100);
+            table.getDefaultCell().setPadding(padding);
+            table.getDefaultCell().setBorderWidth(spacing);
+            table.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            table.getDefaultCell().setBorder(0);
+            table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            PdfPCell cell = new PdfPCell();
+            Paragraph cel = new Paragraph("收款统计清单", fontTitle);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆号 : " + m.get("hallCode"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("馆名 : " + m.get("name"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("负责人 : " + m.get("userName"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+            cel = new Paragraph("电话 : " + m.get("phone"), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            //条件
+            if (condition!=null && condition !=""){
+                cel = new Paragraph(condition, fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }else {
+                cel = new Paragraph("条件 : ", fontHeader);
+                cell = new PdfPCell(cel);
+                cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                cell.setColspan(2);
+                cell.setBorder(0);
+                table.addCell(cell);
+            }
+
+
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+
+            List listData= (List) map.get("resultList");
+            cel = new Paragraph("合计数量 : " + listData.size(), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("合计码洋 : " + formatPrice(map.get("totalSumPrice")), fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+
+            cel = new Paragraph("\n", fontHeader);
+            cell = new PdfPCell(cel);
+            cell.setColspan(4);
+            cell.setBorder(0);
+            table.addCell(cell);
+            document.add(table);
+
+
+
+
+
+
+            // 表格内容
+            Font fontChinese = new Font(bfChinese, 10, Font.NORMAL);
+            // 创建有colNumber列的表格
+            PdfPTable datatable = new PdfPTable(colNumber);
+            int[] cellsWidth = {3, 4, 4, 6, 4, 3, 3, 3, 5};
+            datatable.setWidths(cellsWidth);
+            datatable.setWidthPercentage(100); // 表格的宽度百分比
+            datatable.getDefaultCell().setBackgroundColor(BaseColor.WHITE);
+            datatable.getDefaultCell().setBorderWidthLeft(0);
+            datatable.getDefaultCell().setBorderWidthRight(0);
+            datatable.getDefaultCell().setBorderWidthTop(0);
+            datatable.getDefaultCell().setPaddingTop(6f);
+            datatable.getDefaultCell().setPaddingBottom(6f);
+            datatable.getDefaultCell().setBorderWidth(6f);
+            datatable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+
+            CustomCell border = new CustomCell();
+            datatable.getDefaultCell().setCellEvent(border);// 虚线设置
+
+            datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+            // 添加表头元素
+            for (int i = 0; i < colNumber; i++) {
+                cel = new Paragraph(tableHeader[i], fontChinese);
+                cell = new PdfPCell(cel);
+                cell.setBorder(0);
+                cell.setBorderWidthBottom(0.2f);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setMinimumHeight(20);
+                cell.setCellEvent(border);// 虚线设置
+                datatable.addCell(cell);
+            }
+            datatable.setHeaderRows(1); // 每页都输出表头
+            datatable.getDefaultCell().setBorderWidth(0.2f);
+            int rowIndex = 1;
+            List li= (List) map.get("resultList");
+            for (int j = 0; j < li.size(); j++) {
+                HashMap hashMap = (HashMap) li.get(j);
+                Map<String, String> mm = Maps.newHashMap();
+                mm.put("1",hashMap.get("operDate")+"");
+                mm.put("2", hashMap.get("operOrder") + "");
+                mm.put("3", hashMap.get("cardName") + "");
+                mm.put("4", hashMap.get("idcard") + "");
+                mm.put("5", hashMap.get("bookSum") + "");
+                mm.put("6", hashMap.get("inBorrowerPrice") + "");
+                mm.put("7", hashMap.get("deposit") + "");
+
+                if (hashMap.get("operation").equals("5")) {
+                    mm.put("8","收现金");
+                } else if (hashMap.get("operation").equals("6")) {
+                    mm.put("8","收现金");
+                } else if (hashMap.get("operation").equals("9")) {
+                    mm.put("8","收现金");
+                } else if (hashMap.get("operation").equals("9")) {
+                    mm.put("8","退押金");
+                } else if (hashMap.get("operation").equals("31")) {
+                    mm.put("8","收赔金");
+                }else if (hashMap.get("operation").equals("30")) {
+                    mm.put("8","收罚金");
+                }
+                mm.put("9",  hashMap.get("userName")+ "");
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(0.9f);
+                }
+                for (int i = 1; i <= colNumber; i++) {
+                    datatable.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+                    datatable.addCell(new Paragraph(mm.get(i + ""), fontChinese));
+                }
+                if (rowIndex % 2 == 1) {
+                    datatable.getDefaultCell().setGrayFill(1.0f);
+                }
+                rowIndex++;
+            }
+            document.add(datatable);
+            document.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        } finally {
+            //关闭流
+            if (out != null) {
+                try {
+                    out.flush();
+                    out.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+    private OutputStream writePdf(HttpServletResponse response, String fileName, Document document) {
+        response.reset();
+        response.addHeader("Content-Disposition", "attachment;filename=" + new String(fileName.getBytes()));
+        response.setContentType("application/pdf");
+        OutputStream out = null;
+        try {
+            out = response.getOutputStream();
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            writer.setPageEvent(new PdfHelper());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return out;
+    }
+
+    private String formatPrice(Object price) {
+        DecimalFormat myformat = new DecimalFormat();
+        myformat.applyPattern("######0.00");
+        return myformat.format(price);
+    }
+
+    class CustomCell implements PdfPCellEvent {
+
+        @Override
+        public void cellLayout(PdfPCell cell, Rectangle position, PdfContentByte[] canvases) {
+            // TODO Auto-generated method stub
+            // TODO Auto-generated method stub
+            PdfContentByte cb = canvases[PdfPTable.LINECANVAS];
+            cb.saveState();
+            // cb.setLineCap(PdfContentByte.LINE_CAP_ROUND);
+            // cb.setLineDash(0, 1, 1);
+            cb.setLineWidth(0.5f);
+            cb.setLineDash(new float[]{2.0f, 2.0f}, 0);
+            cb.moveTo(position.getLeft(), position.getBottom());
+            cb.lineTo(position.getRight(), position.getBottom());
+            cb.stroke();
+            cb.restoreState();
+        }
+    }
+
+}
