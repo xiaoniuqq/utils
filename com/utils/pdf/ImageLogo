@@ -1,0 +1,72 @@
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+/**
+ * 导出pdf 公司logo
+ * Created by zengliliang on 2018/2/1.
+ */
+public class ImageLogo {
+
+    //图片base64字符串
+    private static final String ImageLogoBase64 = "iVBORw0KGgoAAAANSUhEUgAAAIgAAACdCAYAAABvoTB6AAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJ\n" + "bWFnZVJlYWR5ccllPAAAA2lpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdp\n" + "bj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6\n" + "eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTQyIDc5LjE2\n" + "MDkyNCwgMjAxNy8wNy8xMy0wMTowNjozOSAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJo\n" + "dHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlw\n" + "dGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEu\n" + "MC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVz\n" + "b3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1N\n" + "Ok9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDoxYmFiZTk1OS1jOWM5LWVmNDItYWEyNy05MTJh\n" + "MjM2YjcxYTciIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6OTk1RkQ4NDUwNzJEMTFFOEE4NjRB\n" + "MzgwNTM5RDVCN0YiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6OTk1RkQ4NDQwNzJEMTFFOEE4\n" + "NjRBMzgwNTM5RDVCN0YiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIChXaW5k\n" + "b3dzKSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjZBM0Ey\n" + "QkM4RjY5QzExRTc5ODgyQUFFRDA2RUQ4MkEwIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjZB\n" + "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\n" + "AAAASUVORK5CYII=\n";
+    private static final Logger LOG = LoggerFactory.getLogger(ImageLogo.class);
+
+    /**
+     * @return
+     * @Description: 将base64编码字符串转换为图片
+     * @Author:
+     * @CreateTime:
+     */
+    public static byte[] generateImage() {
+        BASE64Decoder decode = new BASE64Decoder();
+        byte[] b = null;
+        try {
+            b = decode.decodeBuffer(ImageLogoBase64);
+        } catch (IOException e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        }
+        return b;
+    }
+
+    /**
+     * @Description: 根据图片地址转换为base64编码字符串
+     * @Author:
+     * @CreateTime:
+     * @return
+     */
+    public static String getImageStr(String filePath) {
+        InputStream inputStream = null;
+        byte[] data = null;
+        try {
+            inputStream = new FileInputStream(filePath);
+            data = new byte[inputStream.available()];
+            inputStream.read(data);
+        } catch (IOException e) {
+            e.printStackTrace();
+            LOG.info(e.getMessage());
+        }finally {
+            try {
+                if (inputStream!=null){
+                    inputStream.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        // 加密
+        BASE64Encoder encoder = new BASE64Encoder();
+        return encoder.encode(data);
+    }
+
+   /* public static void main(String[] args) {
+        System.out.println(ImageLogo.generateImage());
+    }*/
+}
